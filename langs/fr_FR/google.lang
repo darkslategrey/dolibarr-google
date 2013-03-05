@@ -1,0 +1,25 @@
+# Dolibarr language file - fr_FR - google
+CHARSET=UTF-8
+GoogleSetup=Configuration du module Google
+GoogleSetupHelp=L'ID Agenda est propre à chaque agenda et est visible dans la page de paramétrage Google de l'agenda. Il s'agit d'un identifiant qui ressemble à un email.
+GoogleAgendaNb=Agenda no %s
+GoogleIDAgenda=ID Agenda
+GoogleNbOfAgenda=Nombre d'agendas
+GoogleTools=Outils Google
+GoogleEnableThisTool=Ajouter l'onglet Google agenda sur la vue agenda
+GoogleEnableThisToolThirdParties=Activer cet outils sur les Tiers
+GoogleEnableThisToolContacts=Activer cet outils sur les Contacts
+GoogleEnableThisToolMembers=Activer cet outils sur les Adhérents
+GoogleAddPubOnLogonPage=Renseigner les informations AdSense pour ajouter une publicité Google sur la page de logon (sinon laisser vide)
+GoogleAddAnalyticsOnLogonPage=Renseigner l'id de suivi Analytics pour ajouter la balise Google Analytics sur la page de logon (sinon laisser vide)
+GoogleZoomLevel=Niveau de zoom par défaut (1 à 10)
+GoogleAddressNotDefined=L'adresse n'est pas ou pas complètement renseignée pour être géolocalisée
+GoogleMapsAddressNotFound=L'adresse n'a pu être trouvée.
+GoogleAgendaToShow=Agenda à afficher
+GoogleEnableSyncToCalendar=Créer un évènement Google dans Google Calendar lors de la création d'un évènement Dolibarr
+AgendaView=View Google agenda
+AgendaSync=Sync to Google agenda
+GOOGLE_LOGIN=Google Login
+GOOGLE_PASSWORD=Password
+Module101110Name=Google
+Module101110Desc=Module pour intégrer les outils Google dans Dolibarr

@@ -59,6 +59,43 @@ $_authSubKeyFile = null; // Example value for secure use: 'mykey.pem'
  */
 $_authSubKeyFilePassphrase = null;
 
+
+class AxCAtionComm extends CActionComm
+{
+  function __construct($db) {
+    $this->db = $db;
+  }
+
+  function fetch_by_code($code) {
+    $sql = "SELECT id, code, type, libelle, active";
+    $sql.= " FROM ".MAIN_DB_PREFIX."c_actioncomm";
+    $sql.= " WHERE code = '".$code."'";
+    dol_syslog(get_class($this)."::fetch sql=".$sql);
+    $resql=$this->db->query($sql);
+    if ($resql) {
+      if ($this->db->num_rows($resql)) {
+	$obj = $this->db->fetch_object($resql);
+	$this->id      = $obj->id;
+	$this->code    = $obj->code;
+	$this->type    = $obj->type;
+	$this->libelle = $obj->libelle;
+	$this->active  = $obj->active;
+	return 1;
+      }
+      else
+	{
+	  return 0;
+	}
+      $this->db->free($resql);
+    }
+    else
+      {
+	$this->error=$this->db->error();
+	return -1;
+      }
+  }
+}
+
 /**
  * Returns the full URL of the current page, based upon env variables
  *
@@ -387,10 +424,9 @@ function createEvent($client, $object)
 	$newEntry->when = array($when);
 
 	dol_syslog("startTime=".$when->startTime." endTime=".$when->endTime);
-	
-	$calUrl = getCalendarUrl($object, $client);
 	// Add Dolibarr action id into Google event properties
-	$createdEntry = $gc->insertEvent($newEntry, $calUrl);
+
+	$createdEntry = $gc->insertEvent($newEntry);
 	$gid=basename($createdEntry->getId());
     //print $gid." $object->id";
     //$event = getEvent($client, $gid);
@@ -501,42 +537,6 @@ function createRecurringEvent ($client, $title, $desc, $where, $recurData = null
   $gc->post($newEntry->saveXML());
 }
 
-
-
-function getCalendarUrl($object, $client) {
-
-  global $db, $conf;
-  $c_actioncommstatic = new CActionComm($db);
-  $c_actioncommstatic->fetch_by_code($object->type_code);
-  $calUrl = $calName = '';
-  if($conf->global->MAIN_INFO_SOCIETE_NOM == 'JOBDEPENDANCE') {
-    if($object->type_code == 'AC_REGIE') {
-      $calName = 'Bannières Jobdependance';
-    } elseif($object->usertodo->prenom == 'Arthur') {
-      $calName = 'Action. jobdep. Arthur';
-    } elseif($object->usertodo->prenom = 'Maud') {
-      $calName = 'Action. jobdep. Maud';
-    }
-  } elseif($conf->global->MAIN_INFO_SOCIETE_NOM == 'JOBENFANCE') {
-    if($object->type_code == 'AC_REGIE') {
-      $calName = 'Bannières Jobenfance';
-    } elseif($object->usertodo->prenom == 'Maud') {
-      $calName = 'Action. Jobenf. Maud';
-    }
-  }
-  if($calName == '') { $calName = 'Action. Jobenf. Maud'; }
-  
-  $gdataCal = new Zend_Gdata_Calendar($client);
-  $calFeed  = $gdataCal->getCalendarListFeed();
-  $appCalUrl = '';
-  foreach ($calFeed as $calendar) {
-    if($calendar->title->text == $calName)
-      $appCalUrl = $calendar->content->src;
-  }
-  return $appCalUrl;
-}
-
-
 /**
  * Returns an entry object representing the event with the specified ID.
  *
@@ -574,6 +574,8 @@ function getEvent($client, $eventId)
  */
 function updateEvent($client, $eventId, $object)
 {
+
+  // var_dump($object); exit;
 	$gdataCal = new Zend_Gdata_Calendar($client);
 
 	$eventOld = getEvent($client, $eventId);
@@ -600,13 +602,18 @@ function updateEvent($client, $eventId, $object)
 	    $eventOld->when = array($when);
 
 	    dol_syslog("startTime=".$when->startTime." endTime=".$when->endTime);
+	    $dest_code = 0; // quel agenda ? 	
+    // $eventOld->src = $gcalid;
+	    var_dump("gcalid #".$gcalid."#");
 
-	    $calUrl = getCalendarUrl($object, $client);
+	    $who = $eventOld->getWho();
 
-	    // var_dump($calUrl); exit;
-
+	    $who[0]->setValueString($gcalid);
+	    // var_dump($who); exit;
+	    // var_dump($eventOld);exit;
+	    if($object->fk_user_action == 1)
 	    try {
-			$eventOld->save($calUrl);
+			$eventOld->save();
 		} catch (Zend_Gdata_App_Exception $e) {
 			var_dump($e);
 			return null;

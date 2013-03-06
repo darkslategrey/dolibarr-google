@@ -108,6 +108,7 @@ class InterfaceGoogleCalendarSynchro
         // Mettre ici le code a executer en reaction de l'action
         // Les donnees de l'action sont stockees dans $object
 
+      print_r("Action #".$action."#");
         if (! $conf->google->enabled) return 0;	// Module non actif
         if (empty($conf->global->GOOGLE_DUPLICATE_INTO_GCAL)) return 0;
 
@@ -124,7 +125,7 @@ class InterfaceGoogleCalendarSynchro
 
             $langs->load("other");
 
-            //var_dump($object); exit;
+
 
 	        $user = $conf->global->GOOGLE_LOGIN;
 	        $pwd = $conf->global->GOOGLE_PASSWORD;
@@ -133,9 +134,13 @@ class InterfaceGoogleCalendarSynchro
 	        //var_dump($client); exit;
 
 	        $ret = createEvent($client, $object);
+
 	        //var_dump($ret); exit;
 
 	        $object->update_ref_ext($ret);    // This is to store ref_ext to allow updates
+		
+		// require 'pp';
+		// print_r($object); exit;
 
 	        return 1;
         }

@@ -566,6 +566,8 @@ class Zend_Gdata_App
             $finalContentType = $contentTypeOverride;
         }
 
+	print_r(array('method' => $method, 'url' => $url,'data' => $rawData, 'headers' => $headers,'contentType' => $finalContentType));
+
         return array('method' => $method, 'url' => $url,
             'data' => $rawData, 'headers' => $headers,
             'contentType' => $finalContentType);

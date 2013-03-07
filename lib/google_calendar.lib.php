@@ -59,6 +59,40 @@ $_authSubKeyFile = null; // Example value for secure use: 'mykey.pem'
  */
 $_authSubKeyFilePassphrase = null;
 
+
+function getCalendarUrl($object, $client) {
+
+  global $db, $conf;
+  $c_actioncommstatic = new CActionComm($db);
+  $c_actioncommstatic->fetch_by_code($object->type_code);
+  $calUrl = $calName = '';
+  if($conf->global->MAIN_INFO_SOCIETE_NOM == 'JOBDEPENDANCE') {
+    if($object->type_code == 'AC_REGIE') {
+      $calName = 'Bannières Jobdependance';
+    } elseif($object->usertodo->prenom == 'Arthur') {
+      $calName = 'Action. jobdep. Arthur';
+    } elseif($object->usertodo->prenom = 'Maud') {
+      $calName = 'Action. jobdep. Maud';
+    }
+  } elseif($conf->global->MAIN_INFO_SOCIETE_NOM == 'JOBENFANCE') {
+    if($object->type_code == 'AC_REGIE') {
+      $calName = 'Bannières Jobenfance';
+    } elseif($object->usertodo->prenom == 'Maud') {
+      $calName = 'Action. Jobenf. Maud';
+    }
+  }
+  if($calName == '') { $calName = 'Action. Jobenf. Maud'; }
+  
+  $gdataCal = new Zend_Gdata_Calendar($client);
+  $calFeed  = $gdataCal->getCalendarListFeed();
+  $appCalUrl = '';
+  foreach ($calFeed as $calendar) {
+    if($calendar->title->text == $calName)
+      $appCalUrl = $calendar->content->src;
+  }
+  return $appCalUrl;
+}
+
 /**
  * Returns the full URL of the current page, based upon env variables
  *
@@ -363,7 +397,9 @@ function outputCalendarByFullTextQuery($client, $fullTextQuery)
 function createEvent($client, $object)
 {
     // More examples on http://code.google.com/intl/fr/apis/calendar/data/1.0/developers_guide_php.html
-
+  // 7kduu0ldiaq8ce68blnj4vn
+  // 23hu919jc5e7rr8h5p2drisv20
+  // var_dump($object->ref_ext); exit;
 	$gc = new Zend_Gdata_Calendar($client);
 
 	$newEntry = $gc->newEventEntry();
@@ -387,8 +423,14 @@ function createEvent($client, $object)
 	$newEntry->when = array($when);
 
 	dol_syslog("startTime=".$when->startTime." endTime=".$when->endTime);
+
+	// get the specific url
+	$calendarUrl = getCalendarUrl($object, $client);
 	// Add Dolibarr action id into Google event properties
-	$createdEntry = $gc->insertEvent($newEntry);
+	// var_dump($calendarUrl); exit;
+	// $createdEntry = $gc->insertEvent($newEntry);
+	$createdEntry = $gc->insertEvent($newEntry, $calendarUrl);
+
 	$gid=basename($createdEntry->getId());
     //print $gid." $object->id";
     //$event = getEvent($client, $gid);
@@ -506,18 +548,26 @@ function createRecurringEvent ($client, $title, $desc, $where, $recurData = null
  * @param  string           $eventId The event ID string
  * @return Zend_Gdata_Calendar_EventEntry|null if the event is found, null if it's not
  */
-function getEvent($client, $eventId)
+function getEvent($client, $eventId, $eventUrl=null)
 {
+
 	$gdataCal = new Zend_Gdata_Calendar($client);
 	$query = $gdataCal->newEventQuery();
-	$query->setUser('default');
 	$query->setVisibility('private');
 	$query->setProjection('full');
+	$query->setFutureevents('true');
 	$query->setEvent($eventId);
 
+	if($eventUrl == null) {
+	  $query->setUser('default');
+	} else {
+	  dol_syslog("getEvent calId <".$calId.">");
+	  $query->setUser($calId);
+	}
+
 	try {
-		$eventEntry = $gdataCal->getCalendarEventEntry($query);
-		return $eventEntry;
+	  $eventEntry = $gdataCal->getCalendarEventEntry($query);
+	  return $eventEntry;
 	} catch (Zend_Gdata_App_Exception $e) {
 		dol_syslog("Error during getCalendarEventEntry", LOG_ERR);
 		return null;
@@ -536,9 +586,15 @@ function getEvent($client, $eventId)
  */
 function updateEvent($client, $eventId, $object)
 {
+  // eventId: tusdv5e585hq7538u0p5cck
+  // var_dump($object->ref_ext); // exit;
+  // var_dump($object); exit;
+  // var_dump($eventId); exit;
 	$gdataCal = new Zend_Gdata_Calendar($client);
 
-	$eventOld = getEvent($client, $eventId);
+	$eventOld = getEvent($client, $eventId, $object->ref_ext);
+	// $oldId = $eventOld->getId();
+
 	if ($eventOld)
 	{
 	    //echo "Old title: " . $eventOld->title->text . " -> ".$object->label."<br>\n"; exit;
@@ -547,6 +603,11 @@ function updateEvent($client, $eventId, $object)
 
 	    $eventOld->content = $gdataCal->newContent(dol_string_nohtmltag($object->note));
 	    $eventOld->content->type = 'text';
+	    
+	    $calendarUrl = getCalendarUrl($object, $client);
+	    // var_dump($calendarUrl); exit;
+	    $eventOld->content->src = $calendarUrl;
+	    // var_dump($eventOld); exit;
 
 	    $when = $gdataCal->newWhen();
 	    if (empty($object->fulldayevent))
@@ -563,13 +624,18 @@ function updateEvent($client, $eventId, $object)
 
 	    dol_syslog("startTime=".$when->startTime." endTime=".$when->endTime);
 	    try {
+			dol_syslog("APRES 0 save eventId #".$eventId."#");
 			$eventOld->save();
+			// dol_syslog("APRES 1 save eventId #".$eventId."# newId #".$eventOld->getId());
+			dol_syslog("APRES 1 save eventId #".$eventId."#");
+
 		} catch (Zend_Gdata_App_Exception $e) {
-			var_dump($e);
+	      var_dump($e); 
 			return null;
 		}
 		//$eventNew = getEvent($client, $eventId);
 		//echo "New title: " . $eventNew->title->text . "<br>\n";
+	    // dol_syslog("APRES 2 save eventId #".$eventId."# newId #".$eventOld->getId());
 		return $eventOld->getId();
 	}
 	else

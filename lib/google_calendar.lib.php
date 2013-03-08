@@ -276,6 +276,24 @@ function outputCalendarList($client)
 	echo "</ul>\n";
 }
 
+
+function deleteTestEvents($client) {
+  $gdataCal = new Zend_Gdata_Calendar($client);
+  $calFeed = $gdataCal->getCalendarListFeed();
+  foreach ($calFeed as $calendar) {
+    $calUrl = $calendar->content->src;
+    dol_syslog("Calendar #".$calendar->title->text."#");
+    $eventFeed = $gdataCal->getCalendarEventFeed($calUrl);
+    foreach ($eventFeed as $event) {
+      if(preg_match('/test|greg/i', $event->title->text) == 1) {
+	dol_syslog("\t".$event->title->text);
+	$event->delete();
+      }
+    }
+  }
+}
+
+
 /**
  * Outputs an HTML unordered list (ul), with each list item representing an
  * event on the authenticated user's calendar.  Includes the start time and
@@ -590,6 +608,7 @@ function updateEvent($client, $eventId, $object)
   // var_dump($object->ref_ext); // exit;
   // var_dump($object); exit;
   // var_dump($eventId); exit;
+  // deleteTestEvents($client);
 	$gdataCal = new Zend_Gdata_Calendar($client);
 
 	$eventOld = getEvent($client, $eventId, $object->ref_ext);
